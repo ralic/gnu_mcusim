@@ -17,12 +17,29 @@ extern "C" {
  */
 typedef uint64_t cycles_t;
 
+/*
+ * Calibrated TSC frequency.
+ *
+ * Should be initialized before use.
+ */
+extern uint64_t tsc_khz;
+
+/* Public prototypes */
+
+uint64_t pit_calibrate_tsc(void);
+
+int tsc_init(void);
+
+/* END Public prototypes */
+
+/* Functions */
+
 static inline cycles_t get_cycles(void)
 {
 	return rdtsc();
 }
 
-uint64_t pit_calibrate_tsc(void);
+/* END Functions */
 
 #ifdef __cplusplus
 }

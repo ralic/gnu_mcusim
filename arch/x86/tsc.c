@@ -1,12 +1,17 @@
 #include <stdio.h>
 
 #include "arch/x86/tsc.h"
+#include "tools/math/math.h"
 
 #define PIT_TICK_RATE	1193182ul
 
 #define CAL_MS		10
 #define CAL_LATCH	(PIT_TICK_RATE / (1000 / CAL_MS))
 #define CAL_PIT_LOOPS	1000
+
+uint64_t tsc_khz;
+
+static int set_ports_state(int state);
 
 uint64_t pit_calibrate_tsc(void)
 {
@@ -52,4 +57,42 @@ uint64_t pit_calibrate_tsc(void)
 	/* Calculate the PIT value */
 	delta = t2 - t1;
 	return delta / ms;
+}
+
+int tsc_init(void)
+{
+	uint8_t i = 0;
+	uint64_t tsc_vals[50];
+	const uint8_t calib_cycles = 50;
+
+	/*
+	 * Enables access to PIT ports (0x61, 0x43, 0x42).
+	 */
+	if (set_ports_state(1))
+		return -1;
+
+	for (i = 0; i < calib_cycles; i++) {
+		tsc_vals[i] = pit_calibrate_tsc();
+	}
+	tsc_khz = msim_median(tsc_vals, calib_cycles);
+
+	/*
+	 * Disable access to PIT ports (0x61, 0x43, 0x42).
+	 */
+	if (set_ports_state(0))
+		return -1;
+
+	return 0;
+}
+
+static int set_ports_state(int state)
+{
+	if (ioperm(0x61, 1, state) ||
+	    ioperm(0x43, 1, state) ||
+	    ioperm(0x42, 1, state)) {
+		fprintf(stderr, "Cannot set permissions for ports "
+				"0x61, 0x43 and 0x42\n");
+		return -1;
+	}
+	return 0;
 }

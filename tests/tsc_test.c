@@ -44,19 +44,10 @@ int calibrate_tsc(void)
 
 int measure_cycle(void)
 {
-	uint64_t tsc_khz = 0;
-	uint64_t tsc_vals[50];
 	uint64_t i, t1, t2;
 	const uint16_t cycles_count = 1000;
 
-	_mu_assert(ioperm(0x61, 1, 1) == 0);
-	_mu_assert(ioperm(0x43, 1, 1) == 0);
-	_mu_assert(ioperm(0x42, 1, 1) == 0);
-
-	for (i = 0; i < 50; i++) {
-		tsc_vals[i] = pit_calibrate_tsc();
-	}
-	tsc_khz = msim_median(tsc_vals, 50);
+	_mu_assert(tsc_init() == 0);
 	printf("TSC frequency: %lu.%03lu MHz\n", tsc_khz / 1000,
 						 tsc_khz % 1000);
 
@@ -69,10 +60,6 @@ int measure_cycle(void)
 			cycles_count,
 			((double) 1000000 / (double) tsc_khz) *
 			(double) (t2-t1));
-
-	_mu_assert(ioperm(0x61, 1, 0) == 0);
-	_mu_assert(ioperm(0x43, 1, 0) == 0);
-	_mu_assert(ioperm(0x42, 1, 0) == 0);
 
 	return 0;
 }
